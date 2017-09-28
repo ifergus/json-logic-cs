@@ -11,6 +11,36 @@ The JsonLogic format is designed to allow you to share rules (logic) between fro
 The same format can also be executed in PHP by the library [json-logic-php](https://github.com/jwadhams/json-logic-php/)
 
 ## Approach
+The approach used in `json-logic-cs` is to try and shield the calling code from interacting with JSON explicitly.  In most cases, `JsonLogic` will return a common .Net type as follows:
+
+<table>
+  <thead>
+    <tr>
+      <th>JSON Type</th>
+      <th>.Net Type</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Number (when Integer)</td>
+      <td>System.Int32</td>
+    </tr>
+    <tr>
+      <td>Number (when non-integer)</td>
+      <td>System.Double</td>
+    </tr>
+    <tr>
+      <td>String</td>
+      <td>System.String</td>
+    </tr>
+<tr>
+      <td>Boolean</td>
+      <td>System.Bool</td>
+    </tr>
+  </tbody>
+</table>
+
+Of course given the dynamic nature of JSON and .Net’s strong type-system, it’s not always possible to return a .Net type that properly reflects the result.  In these cases, the result is returned as a .Net [JToken Object]( https://www.newtonsoft.com/json/help/html/T_Newtonsoft_Json_Linq_JToken.htm) based on the popular [Newtonsoft JSON.Net]( https://www.newtonsoft.com/json) framework, which is used internally to serialize and manipulate JSON objects.
 
 
 ## Examples
@@ -110,3 +140,11 @@ string data = null;
 int i = JsonLogic(logic, data);
 
 // 5
+```
+
+### Missing Functions
+
+This is a partial port of the GitHub project by [jwadhams](https://github.com/jwadhams) for JavaScript: [json-logic-js](https://github.com/jwadhams/json-logic-js).  Although most of the functions have been implemented a few are still outstanding that I plan to implement in the near future.  These are:
+`map`
+`reduce`
+`join`
