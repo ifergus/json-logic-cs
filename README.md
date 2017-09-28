@@ -42,6 +42,7 @@ The approach used in `json-logic-cs` is to try and shield the calling code from 
 
 Of course given the dynamic nature of JSON and .Net’s strong type-system, it’s not always possible to return a .Net type that properly reflects the result.  In these cases, the result is returned as a .Net [JToken Object]( https://www.newtonsoft.com/json/help/html/T_Newtonsoft_Json_Linq_JToken.htm) based on the popular [Newtonsoft JSON.Net]( https://www.newtonsoft.com/json) framework, which is used internally to serialize and manipulate JSON objects.
 
+`json-logic-cs` is written in C# 7.0 and tested on .Net Core 2.0.
 
 ## Examples
 
