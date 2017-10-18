@@ -8,31 +8,32 @@ namespace JsonLogicCSharp
 {
     public static class JsonLogic
     {
+        enum EvaluationOrder {First, Second};
 
         static class OperationHandler
-        {
+        {          
 
-            private static Dictionary<(int, string), Func<JArray, IEnumerable<dynamic>, JToken, dynamic>> Operations = null;
+            private static Dictionary<(EvaluationOrder, string), Func<JArray, IEnumerable<dynamic>, JToken, dynamic>> Operations = null;
 
             static OperationHandler()
             {
-                Operations = new Dictionary<(int, string), Func<JArray, IEnumerable<dynamic>, JToken, dynamic>>()
+                Operations = new Dictionary<(EvaluationOrder, string), Func<JArray, IEnumerable<dynamic>, JToken, dynamic>>()
                 {
 
-                    [(1, "missing")] = (v, p, d) =>
+                    [(EvaluationOrder.First, "missing")] = (v, p, d) =>
                     {
                         var v1 = v.Select(x => x);
                         var d1 = d.Select(x => x.Path);
                         return new JArray(v1.Where(s => !d1.Any(t => t.ToString() == s.ToString())));
                     },
 
-                    [(1, "missing_some")] = (v, p, d) => (Operations[(1, "missing")](v, p, d) as JArray).Count > 0,
+                    [(EvaluationOrder.First, "missing_some")] = (v, p, d) => (Operations[(EvaluationOrder.First, "missing")](v, p, d) as JArray).Count > 0,
 
-                    [(1, "and")] = (v, p, d) => !v.Any(x => !Truthy(ApplyInternal(x, d))),
+                    [(EvaluationOrder.First, "and")] = (v, p, d) => !v.Any(x => !Truthy(ApplyInternal(x, d))),
 
-                    [(1, "or")] = (v, p, d) => v.Any(x => Truthy(ApplyInternal(x, d))),
+                    [(EvaluationOrder.First, "or")] = (v, p, d) => v.Any(x => Truthy(ApplyInternal(x, d))),
 
-                    [(1, "in")] = (v, p, d) =>
+                    [(EvaluationOrder.First, "in")] = (v, p, d) =>
                     {
                         if (v.Where(x => x is JArray).Count() > 0)
                         {
@@ -42,7 +43,7 @@ namespace JsonLogicCSharp
                         return ((string)v.Last).Contains((string)v.First);
                     },
 
-                    [(1, "if")] = (v, p, d) =>
+                    [(EvaluationOrder.First, "if")] = (v, p, d) =>
                     {
                         int i;
                         for (i = 0; i < v.Count - 1; i += 2)
@@ -61,9 +62,9 @@ namespace JsonLogicCSharp
                         return null;
                     },
 
-                    [(1, "?:")] = (v, p, d) => Operations[(1, "if")](v, p, d),
+                    [(EvaluationOrder.First, "?:")] = (v, p, d) => Operations[(EvaluationOrder.First, "if")](v, p, d),
 
-                    [(1, "var")] = (v, p, d) =>
+                    [(EvaluationOrder.First, "var")] = (v, p, d) =>
                     {
                         if (v.First.Type == JTokenType.String)
                         {
@@ -79,56 +80,56 @@ namespace JsonLogicCSharp
                     },
 
 
-                    [(1, "merge")] = (v, p, d) => new JArray(v.SelectMany(x => x).Select(y => (y as JValue).Value)),
+                    [(EvaluationOrder.First, "merge")] = (v, p, d) => new JArray(v.SelectMany(x => x).Select(y => (y as JValue).Value)),
 
-                    [(1, "cat")] = (v, p, d) => v.Aggregate((i, j) => i + "" + j),
+                    [(EvaluationOrder.First, "cat")] = (v, p, d) => v.Aggregate((i, j) => i + "" + j),
 
-                    [(1, "log")] = (v, p, d) =>
+                    [(EvaluationOrder.First, "log")] = (v, p, d) =>
                     {
                         Console.WriteLine(v.First);
                         return v;
                     },
 
-                    [(1, "!")] = (v, p, d) => !Truthy(v.First),
+                    [(EvaluationOrder.First, "!")] = (v, p, d) => !Truthy(v.First),
 
-                    [(1, "!!")] = (v, p, d) => Truthy(v.First),
+                    [(EvaluationOrder.First, "!!")] = (v, p, d) => Truthy(v.First),
 
-                    [(2, "==")] = (v, p, d) => p.First() == p.Last(),
+                    [(EvaluationOrder.Second, "==")] = (v, p, d) => p.First() == p.Last(),
 
-                    [(2, "===")] = (v, p, d) => p.First() == p.Last() && p.First().GetHashCode() == p.Last().GetHashCode(),
+                    [(EvaluationOrder.Second, "===")] = (v, p, d) => p.First() == p.Last() && p.First().GetHashCode() == p.Last().GetHashCode(),
 
-                    [(2, "!=")] = (v, p, d) => p.First() != p.Last(),
+                    [(EvaluationOrder.Second, "!=")] = (v, p, d) => p.First() != p.Last(),
 
-                    [(2, ">")] = (v, p, d) => !p.Zip(p.Skip(1), (a, b) => a > b).Contains(false),
+                    [(EvaluationOrder.Second, ">")] = (v, p, d) => !p.Zip(p.Skip(1), (a, b) => a > b).Contains(false),
 
-                    [(2, ">=")] = (v, p, d) => p.First() >= p.Last(),
+                    [(EvaluationOrder.Second, ">=")] = (v, p, d) => p.First() >= p.Last(),
 
-                    [(2, "<")] = (v, p, d) => !p.Zip(p.Skip(1), (a, b) => a < b).Contains(false),
+                    [(EvaluationOrder.Second, "<")] = (v, p, d) => !p.Zip(p.Skip(1), (a, b) => a < b).Contains(false),
 
-                    [(2, "<=")] = (v, p, d) => p.First() <= p.Last(),
+                    [(EvaluationOrder.Second, "<=")] = (v, p, d) => p.First() <= p.Last(),
 
-                    [(2, "%")] = (v, p, d) => p.First() % p.Last(),
+                    [(EvaluationOrder.Second, "%")] = (v, p, d) => p.First() % p.Last(),
 
-                    [(2, "/")] = (v, p, d) => p.First() / p.Last(),
+                    [(EvaluationOrder.Second, "/")] = (v, p, d) => p.First() / p.Last(),
 
-                    [(2, "-")] = (v, p, d) => p.Count() == 1 ? p.First() * -1 : p.First() - p.Last(),
+                    [(EvaluationOrder.Second, "-")] = (v, p, d) => p.Count() == 1 ? p.First() * -1 : p.First() - p.Last(),
 
-                    [(2, "*")] = (v, p, d) => p.Aggregate((a, b) => a * b),
+                    [(EvaluationOrder.Second, "*")] = (v, p, d) => p.Aggregate((a, b) => a * b),
 
-                    [(2, "+")] = (v, p, d) => p.Sum(a => a),
+                    [(EvaluationOrder.Second, "+")] = (v, p, d) => p.Sum(a => a),
 
-                    [(2, "min")] = (v, p, d) => p.Min(),
+                    [(EvaluationOrder.Second, "min")] = (v, p, d) => p.Min(),
 
-                    [(2, "max")] = (v, p, d) => p.Max()
+                    [(EvaluationOrder.Second, "max")] = (v, p, d) => p.Max()
 
                 };
             }
 
-            public static dynamic PerformOperation(string opSymbol, int order, JArray values, JToken data) => Operations[(order, opSymbol)](values, values, data);
+            public static dynamic PerformOperation(string opSymbol, EvaluationOrder order, JArray values, JToken data) => Operations[(order, opSymbol)](values, values, data);
 
-            public static bool IsOperationCode(string opSymbol) => Operations.ContainsKey((1, opSymbol)) || Operations.ContainsKey((2, opSymbol));
+            public static bool IsOperationCode(string opSymbol) => Operations.ContainsKey((EvaluationOrder.First, opSymbol)) || Operations.ContainsKey((EvaluationOrder.Second, opSymbol));
 
-            public static bool IsOperationInvokable(string opSymbol, int order) => Operations.ContainsKey((order, opSymbol));
+            public static bool IsOperationInvokable(string opSymbol, EvaluationOrder order) => Operations.ContainsKey((order, opSymbol));
 
         };
 
@@ -242,16 +243,16 @@ namespace JsonLogicCSharp
             var values = ExtractValues(logic);
 
 
-            if (OperationHandler.IsOperationInvokable(opSymbol, 1))
+            if (OperationHandler.IsOperationInvokable(opSymbol, EvaluationOrder.First))
             {
-                return OperationHandler.PerformOperation(opSymbol, 1, values, data);
+                return OperationHandler.PerformOperation(opSymbol, EvaluationOrder.First, values, data);
             }
 
             values = new JArray() { values.Select(x => ApplyInternal(x, data)).ToArray() };
 
-            if (OperationHandler.IsOperationInvokable(opSymbol, 2))
+            if (OperationHandler.IsOperationInvokable(opSymbol, EvaluationOrder.Second))
             {
-                return OperationHandler.PerformOperation(opSymbol, 2, values, data);
+                return OperationHandler.PerformOperation(opSymbol, EvaluationOrder.Second, values, data);
             }
 
             throw new KeyNotFoundException("Operator not defined: " + opSymbol);
@@ -294,11 +295,11 @@ namespace JsonLogicCSharp
                             switch (arrayType)
                             {
                                 case JTokenType.Integer:
-                                    return array.Select(x => (int)x).ToArray(); ;
+                                    return array.Select(x => (int)x).ToArray(); 
                                 case JTokenType.Float:
-                                    return array.Select(x => (double)x).ToArray(); ;
+                                    return array.Select(x => (double)x).ToArray(); 
                                 case JTokenType.String:
-                                    return array.Select(x => (string)x).ToArray(); ;
+                                    return array.Select(x => (string)x).ToArray(); 
                                 case JTokenType.Boolean:
                                     return array.Select(x => (bool)x).ToArray();
                                 default:
