@@ -115,15 +115,12 @@ namespace JsonLogicCSharp
                     }
             };
 
-
             public static dynamic PerformOperation(string opSymbol, EvaluationOrder order, JArray values, JToken data) => Operations[order][opSymbol](values, values, data);
 
             public static bool IsOperationCode(string opSymbol) => Operations[EvaluationOrder.First].ContainsKey(opSymbol) || Operations[EvaluationOrder.Second].ContainsKey(opSymbol);
 
             public static bool IsOperationInvokable(string opSymbol, EvaluationOrder order) => Operations[order].ContainsKey(opSymbol);
-
         };
-
 
         public static dynamic Apply(string jsonExpression, string jsonData = null)
         {
@@ -135,7 +132,6 @@ namespace JsonLogicCSharp
             // convert result to standard .Net type, if possible. 
             return ConvertToDotNetType(jsonResult);   
         }
-
 
         public static bool Truthy(JToken token)
         {
@@ -177,8 +173,6 @@ namespace JsonLogicCSharp
 
         private static bool IsLogicalExpression(JToken token) => (token is JProperty prop) && prop != null && OperationHandler.IsOperationCode(prop.Name);
 
-
-
         private static string ExtractOpSymbol(JToken token)
         {
             if (token is JProperty prop)
@@ -196,7 +190,8 @@ namespace JsonLogicCSharp
             {
                 return new JArray();
             }
-            else if (token.First is JArray array)
+
+            if (token.First is JArray array)
             {
                 return array;
             }
@@ -246,7 +241,7 @@ namespace JsonLogicCSharp
         }
 
 
-        public static dynamic ConvertToDotNetType(dynamic token)
+        private static dynamic ConvertToDotNetType(dynamic token)
         {
 
             switch (token)
@@ -275,11 +270,9 @@ namespace JsonLogicCSharp
 
                     try
                     {
-                        if (array.Count > 0)
-                        {
-                            var arrayType = array[0].Type;
-
-                            switch (arrayType)
+                        if (array.HasValues)
+                        {                                            
+                            switch (array.First.Type)
                             {
                                 case JTokenType.Integer:
                                     return array.Select(x => (int)x).ToArray(); 
