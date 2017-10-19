@@ -16,7 +16,7 @@ namespace JsonLogicCSharp
             private static Dictionary<EvaluationOrder, Dictionary<string, Func<JArray, IEnumerable<dynamic>, JToken, dynamic>>> Operations = null;
 
             static OperationHandler() => Operations = new Dictionary<EvaluationOrder, Dictionary<string, Func<JArray, IEnumerable<dynamic>, JToken, dynamic>>>()
-                {
+            {
                     {
                         EvaluationOrder.First,
 
@@ -39,14 +39,14 @@ namespace JsonLogicCSharp
                                 if (v.Where(x => x is JArray).Count() > 0)
                                 {
                                     return v.Last.Select(x => x).Contains(v.First);
-                                 }
+                                }
 
-                                 return ((string)v.Last).Contains((string)v.First);
+                                return ((string)v.Last).Contains((string)v.First);
                             },
 
                             ["if"] = (v, p, d) =>
                             {
-                                int i;
+                                 int i;
                                  for (i = 0; i < v.Count - 1; i += 2)
                                  {
                                     if (Truthy(ApplyInternal(v[i], d)))
@@ -67,17 +67,15 @@ namespace JsonLogicCSharp
 
                             ["var"] =  (v, p, d) =>
                             {
-                                if (v.First.Type == JTokenType.String)
+                                switch (v.First.Type)
                                 {
-                                    return d.SelectToken((string)v.First);
-                                }
-                                else if (v.First.Type == JTokenType.Integer)
-                                {
-                                     var index = (int)v.First;
-                                    return (d.First.Last as JArray)[index];
-                                }
-
-                                return null;
+                                    case JTokenType.String:
+                                        return d.SelectToken((string)v.First);
+                                    case JTokenType.Integer:                                  
+                                        return (d.First.Last as JArray)[(int)v.First];              
+                                    default:
+                                        return null;
+                                }                             
                             },
 
                             ["merge"] = (v, p, d) => new JArray(v.SelectMany(x => x).Select(y => (y as JValue).Value)),
@@ -135,9 +133,7 @@ namespace JsonLogicCSharp
             var jsonResult = ApplyInternal(expressionObj.First, dataObj);
 
             // convert result to standard .Net type, if possible. 
-            var dotNetResult = ConvertToDotNetType(jsonResult);
-
-            return dotNetResult;
+            return ConvertToDotNetType(jsonResult);   
         }
 
 
@@ -195,11 +191,10 @@ namespace JsonLogicCSharp
 
         private static JArray ExtractValues(JToken token)
         {
-
+           
             if (token == null)
             {
                 return new JArray();
-
             }
             else if (token.First is JArray array)
             {
@@ -234,7 +229,6 @@ namespace JsonLogicCSharp
 
             var opSymbol = ExtractOpSymbol(logic);
             var values = ExtractValues(logic);
-
 
             if (OperationHandler.IsOperationInvokable(opSymbol, EvaluationOrder.First))
             {
