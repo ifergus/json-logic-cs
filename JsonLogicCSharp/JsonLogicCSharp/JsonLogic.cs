@@ -13,123 +13,116 @@ namespace JsonLogicCSharp
         static class OperationHandler
         {          
 
-            private static Dictionary<(EvaluationOrder, string), Func<JArray, IEnumerable<dynamic>, JToken, dynamic>> Operations = null;
+            private static Dictionary<EvaluationOrder, Dictionary<string, Func<JArray, IEnumerable<dynamic>, JToken, dynamic>>> Operations = null;
 
-            static OperationHandler()
-            {
-                Operations = new Dictionary<(EvaluationOrder, string), Func<JArray, IEnumerable<dynamic>, JToken, dynamic>>()
+            static OperationHandler() => Operations = new Dictionary<EvaluationOrder, Dictionary<string, Func<JArray, IEnumerable<dynamic>, JToken, dynamic>>>()
                 {
-
-                    [(EvaluationOrder.First, "missing")] = (v, p, d) =>
                     {
-                        var v1 = v.Select(x => x);
-                        var d1 = d.Select(x => x.Path);
-                        return new JArray(v1.Where(s => !d1.Any(t => t.ToString() == s.ToString())));
-                    },
+                        EvaluationOrder.First,
 
-                    [(EvaluationOrder.First, "missing_some")] = (v, p, d) => (Operations[(EvaluationOrder.First, "missing")](v, p, d) as JArray).Count > 0,
-
-                    [(EvaluationOrder.First, "and")] = (v, p, d) => !v.Any(x => !Truthy(ApplyInternal(x, d))),
-
-                    [(EvaluationOrder.First, "or")] = (v, p, d) => v.Any(x => Truthy(ApplyInternal(x, d))),
-
-                    [(EvaluationOrder.First, "in")] = (v, p, d) =>
-                    {
-                        if (v.Where(x => x is JArray).Count() > 0)
+                        new  Dictionary<string, Func<JArray, IEnumerable<dynamic>, JToken, dynamic>>
                         {
-                            return v.Last.Select(x => x).Contains(v.First);
-                        }
 
-                        return ((string)v.Last).Contains((string)v.First);
-                    },
-
-                    [(EvaluationOrder.First, "if")] = (v, p, d) =>
-                    {
-                        int i;
-                        for (i = 0; i < v.Count - 1; i += 2)
-                        {
-                            if (Truthy(ApplyInternal(v[i], d)))
+                            ["missing"] = (v, p, d) =>
                             {
-                                return ApplyInternal(v[i + 1], d);
-                            }
-                        }
+                                var v1 = v.Select(x => x);
+                                var d1 = d.Select(x => x.Path);
+                                return new JArray(v1.Where(s => !d1.Any(t => t.ToString() == s.ToString())));
+                            },
 
-                        if (v.Count == i + 1)
-                        {
-                            return ApplyInternal(v[i], d);
-                        }
+                            ["missing_some"] = (v, p, d) => ((Operations[EvaluationOrder.First]["missing"])(v, p, d) as JArray).Count > 0,
+                            ["and"] = (v, p, d) => !v.Any(x => !Truthy(ApplyInternal(x, d))),
+                            ["or"] = (v, p, d) => v.Any(x => Truthy(ApplyInternal(x, d))),
 
-                        return null;
+                            ["in"] = (v, p, d) =>
+                            {
+                                if (v.Where(x => x is JArray).Count() > 0)
+                                {
+                                    return v.Last.Select(x => x).Contains(v.First);
+                                 }
+
+                                 return ((string)v.Last).Contains((string)v.First);
+                            },
+
+                            ["if"] = (v, p, d) =>
+                            {
+                                int i;
+                                 for (i = 0; i < v.Count - 1; i += 2)
+                                 {
+                                    if (Truthy(ApplyInternal(v[i], d)))
+                                    {
+                                        return ApplyInternal(v[i + 1], d);
+                                    }
+                                 }
+
+                                if (v.Count == i + 1)
+                                {
+                                    return ApplyInternal(v[i], d);
+                                }
+
+                                return null;
+                            },
+
+                            ["?:"] = (v, p, d) => Operations[EvaluationOrder.First]["if"](v, p, d),
+
+                            ["var"] =  (v, p, d) =>
+                            {
+                                if (v.First.Type == JTokenType.String)
+                                {
+                                    return d.SelectToken((string)v.First);
+                                }
+                                else if (v.First.Type == JTokenType.Integer)
+                                {
+                                     var index = (int)v.First;
+                                    return (d.First.Last as JArray)[index];
+                                }
+
+                                return null;
+                            },
+
+                            ["merge"] = (v, p, d) => new JArray(v.SelectMany(x => x).Select(y => (y as JValue).Value)),
+                            ["cat"] = (v, p, d) => v.Aggregate((i, j) => i + "" + j),
+                            ["log"] = (v, p, d) =>
+                            {
+                                Console.WriteLine(v.First);
+                                return v;
+                            },
+
+                            ["!"] = (v, p, d) => !Truthy(v.First),
+                            ["!!"] = (v, p, d) => Truthy(v.First)
+                        }
                     },
 
-                    [(EvaluationOrder.First, "?:")] = (v, p, d) => Operations[(EvaluationOrder.First, "if")](v, p, d),
-
-                    [(EvaluationOrder.First, "var")] = (v, p, d) =>
                     {
-                        if (v.First.Type == JTokenType.String)
+                        EvaluationOrder.Second,
+
+                        new  Dictionary<string, Func<JArray, IEnumerable<dynamic>, JToken, dynamic>>
                         {
-                            return d.SelectToken((string)v.First);
+                           ["=="] = (v, p, d) => p.First() == p.Last(),
+                           ["==="] = (v, p, d) => p.First() == p.Last() && p.First().GetHashCode() == p.Last().GetHashCode(),
+                           ["!="] = (v, p, d) => p.First() != p.Last(),
+                           [">"] = (v, p, d) => !p.Zip(p.Skip(1), (a, b) => a > b).Contains(false),
+                           [">="] = (v, p, d) => p.First() >= p.Last(),
+                           ["<"] = (v, p, d) => !p.Zip(p.Skip(1), (a, b) => a < b).Contains(false),
+                           ["<="] = (v, p, d) => p.First() <= p.Last(),
+                           ["%"] = (v, p, d) => p.First() % p.Last(),
+                           ["/"] = (v, p, d) => p.First() / p.Last(),
+                           ["-"] = (v, p, d) =>  p.Count() == 1 ? p.First() * -1 : p.First() - p.Last(),
+                           ["*"] = (v, p, d) => p.Aggregate((a, b) => a * b),
+                           ["+"] = (v, p, d) => p.Sum(a => a),
+                           ["min"] = (v, p, d) => p.Min(),
+                           ["max"] = (v, p, d) => p.Max()
+
                         }
-                        else if (v.First.Type == JTokenType.Integer)
-                        {
-                            var index = (int)v.First;
-                            return (d.First.Last as JArray)[index];
-                        }
-
-                        return null;
-                    },
+                    }
+            };
 
 
-                    [(EvaluationOrder.First, "merge")] = (v, p, d) => new JArray(v.SelectMany(x => x).Select(y => (y as JValue).Value)),
+            public static dynamic PerformOperation(string opSymbol, EvaluationOrder order, JArray values, JToken data) => Operations[order][opSymbol](values, values, data);
 
-                    [(EvaluationOrder.First, "cat")] = (v, p, d) => v.Aggregate((i, j) => i + "" + j),
+            public static bool IsOperationCode(string opSymbol) => Operations[EvaluationOrder.First].ContainsKey(opSymbol) || Operations[EvaluationOrder.Second].ContainsKey(opSymbol);
 
-                    [(EvaluationOrder.First, "log")] = (v, p, d) =>
-                    {
-                        Console.WriteLine(v.First);
-                        return v;
-                    },
-
-                    [(EvaluationOrder.First, "!")] = (v, p, d) => !Truthy(v.First),
-
-                    [(EvaluationOrder.First, "!!")] = (v, p, d) => Truthy(v.First),
-
-                    [(EvaluationOrder.Second, "==")] = (v, p, d) => p.First() == p.Last(),
-
-                    [(EvaluationOrder.Second, "===")] = (v, p, d) => p.First() == p.Last() && p.First().GetHashCode() == p.Last().GetHashCode(),
-
-                    [(EvaluationOrder.Second, "!=")] = (v, p, d) => p.First() != p.Last(),
-
-                    [(EvaluationOrder.Second, ">")] = (v, p, d) => !p.Zip(p.Skip(1), (a, b) => a > b).Contains(false),
-
-                    [(EvaluationOrder.Second, ">=")] = (v, p, d) => p.First() >= p.Last(),
-
-                    [(EvaluationOrder.Second, "<")] = (v, p, d) => !p.Zip(p.Skip(1), (a, b) => a < b).Contains(false),
-
-                    [(EvaluationOrder.Second, "<=")] = (v, p, d) => p.First() <= p.Last(),
-
-                    [(EvaluationOrder.Second, "%")] = (v, p, d) => p.First() % p.Last(),
-
-                    [(EvaluationOrder.Second, "/")] = (v, p, d) => p.First() / p.Last(),
-
-                    [(EvaluationOrder.Second, "-")] = (v, p, d) => p.Count() == 1 ? p.First() * -1 : p.First() - p.Last(),
-
-                    [(EvaluationOrder.Second, "*")] = (v, p, d) => p.Aggregate((a, b) => a * b),
-
-                    [(EvaluationOrder.Second, "+")] = (v, p, d) => p.Sum(a => a),
-
-                    [(EvaluationOrder.Second, "min")] = (v, p, d) => p.Min(),
-
-                    [(EvaluationOrder.Second, "max")] = (v, p, d) => p.Max()
-
-                };
-            }
-
-            public static dynamic PerformOperation(string opSymbol, EvaluationOrder order, JArray values, JToken data) => Operations[(order, opSymbol)](values, values, data);
-
-            public static bool IsOperationCode(string opSymbol) => Operations.ContainsKey((EvaluationOrder.First, opSymbol)) || Operations.ContainsKey((EvaluationOrder.Second, opSymbol));
-
-            public static bool IsOperationInvokable(string opSymbol, EvaluationOrder order) => Operations.ContainsKey((order, opSymbol));
+            public static bool IsOperationInvokable(string opSymbol, EvaluationOrder order) => Operations[order].ContainsKey(opSymbol);
 
         };
 
