@@ -25,16 +25,10 @@ namespace JsonLogicCSharp
                             ["some"] = (v, p, d) =>
                             {
                                 JArray allData = ApplyInternal(v[0], d);
-                                foreach(JToken checkData in allData)
-                                {
-                                    if (ApplyInternal(v[1], checkData))
-                                    {
-                                        return true;
-                                    }                                 
-                                }                              
-                                return false;
-                            },                  
-                            
+                                return allData.Any(x => ApplyInternal(v[1], x));                 
+                            },
+
+                            ["none"] = (v, p, d) => !(bool)((Operations[EvaluationOrder.First]["some"])(v, p, d)),
                             
                             ["missing"] = (v, p, d) =>
                             {

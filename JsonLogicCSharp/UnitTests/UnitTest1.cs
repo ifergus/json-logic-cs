@@ -311,5 +311,29 @@ namespace UnitTests
 
 
         }
+
+        [TestMethod]
+        public void OpTestNone01()
+        {
+            string rule = @"{ 'none' : [ {'var':'pies'}, {'==':[{'var':'filling'}, 'apple']} ]}";
+            string data = @"
+                        {'pies':[
+                                 { 'filling':'pumpkin','temp':110},
+                                 { 'filling':'rhubarb','temp':210},
+                                 { 'filling':'apple','temp':310}
+                        ]}";
+
+            Assert.IsFalse(JsonLogic.Apply(rule, data));
+
+            rule = @"{ 'none' : [ {'var':'pies'}, {'==':[{'var':'filling'}, 'peach']} ]}";
+
+            Assert.IsTrue(JsonLogic.Apply(rule, data));
+
+            rule = @"{ 'none' : [ {'var':'pies'}, {'==':[{'var':'temp'}, 210]} ]}";
+
+            Assert.IsFalse(JsonLogic.Apply(rule, data));
+
+
+        }
     }
 }
