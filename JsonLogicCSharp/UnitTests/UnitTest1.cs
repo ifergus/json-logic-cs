@@ -335,5 +335,39 @@ namespace UnitTests
 
 
         }
+
+        [TestMethod]
+        public void OpTestAll01()
+        {
+            string rule = @"{ 'all' : [ {'var':'pies'}, {'==':[{'var':'filling'}, 'apple']} ]}";
+            string data = @"
+                        {'pies':[
+                                 { 'filling':'apple','temp':110},
+                                 { 'filling':'apple','temp':210},
+                                 { 'filling':'apple','temp':310}
+                        ]}";
+
+            Assert.IsTrue(JsonLogic.Apply(rule, data));
+            
+
+            rule = @"{ 'all' : [ {'var':'pies'}, {'==':[{'var':'filling'}, 'peach']} ]}";
+
+            Assert.IsFalse(JsonLogic.Apply(rule, data));
+
+            rule = @"{ 'all' : [ {'var':'pies'}, {'==':[{'var':'temp'}, 210]} ]}";
+
+            Assert.IsFalse(JsonLogic.Apply(rule, data));
+
+            data = @"
+                        {'pies':[
+                                 { 'filling':'peach','temp':300},
+                                 { 'filling':'pear','temp':300},
+                                 { 'filling':'apple','temp':300}
+                        ]}";
+
+            rule = @"{ 'all' : [ {'var':'pies'}, {'==':[{'var':'temp'}, 300]} ]}";
+
+            Assert.IsTrue(JsonLogic.Apply(rule, data));
+        }
     }
 }
