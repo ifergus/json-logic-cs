@@ -287,5 +287,29 @@ namespace UnitTests
 
             Assert.AreEqual("The cat in the hat.", JsonLogic.Apply(rule, null));
         }
+
+        [TestMethod]
+        public void OpTestSome01()
+        {
+            string rule = @"{ 'some' : [ {'var':'pies'}, {'==':[{'var':'filling'}, 'apple']} ]}";
+            string data = @"
+                        {'pies':[
+                                 { 'filling':'pumpkin','temp':110},
+                                 { 'filling':'rhubarb','temp':210},
+                                 { 'filling':'apple','temp':310}
+                        ]}";
+
+            Assert.IsTrue(JsonLogic.Apply(rule, data));
+
+            rule = @"{ 'some' : [ {'var':'pies'}, {'==':[{'var':'filling'}, 'peach']} ]}";
+
+            Assert.IsFalse(JsonLogic.Apply(rule, data));
+
+            rule = @"{ 'some' : [ {'var':'pies'}, {'==':[{'var':'temp'}, 210]} ]}";
+
+            Assert.IsTrue(JsonLogic.Apply(rule, data));
+
+
+        }
     }
 }

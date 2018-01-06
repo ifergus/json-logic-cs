@@ -22,7 +22,20 @@ namespace JsonLogicCSharp
 
                         new  Dictionary<string, Func<JArray, IEnumerable<dynamic>, JToken, dynamic>>
                         {
-
+                            ["some"] = (v, p, d) =>
+                            {
+                                JArray allData = ApplyInternal(v[0], d);
+                                foreach(JToken checkData in allData)
+                                {
+                                    if (ApplyInternal(v[1], checkData))
+                                    {
+                                        return true;
+                                    }                                 
+                                }                              
+                                return false;
+                            },                  
+                            
+                            
                             ["missing"] = (v, p, d) =>
                             {
                                 var v1 = v.Select(x => x);
